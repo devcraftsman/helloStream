@@ -1,34 +1,44 @@
 package example
 
-import akka.stream._
-import akka.stream.scaladsl._
-import akka.{ NotUsed, Done }
-import akka.actor.ActorSystem
-import akka.util.ByteString
-import scala.concurrent._
-import scala.concurrent.duration._
 import java.nio.file.Paths
 
-object Hello extends App {
+import akka.NotUsed
+import akka.actor.ActorSystem
+import akka.stream.{ActorMaterializer, IOResult}
+import akka.stream.scaladsl.{FileIO, Flow, Keep, Sink, Source}
+import akka.util.ByteString
 
-  implicit val system = ActorSystem("QuickStart");
-  implicit val materializer = ActorMaterializer();
-  implicit val ec = system.dispatcher;
+import scala.concurrent.{Future}
 
-  def lineSink(filename: String): Sink[String, Future[IOResult]] =
-    Flow[String]
-      .map(s => ByteString(s + "\n"))
-      .toMat(FileIO.toPath(Paths.get(filename)))(Keep.right);
+/**
+  * Created by devcraftsman on 10/16/17.
+  * ----------------------------------------------------
+  * This software is licensed under the Apache 2 license
+  * see: [http://www.apache.org/licenses/LICENSE-2.0]
+  **/
+object Hello {
 
-  val source: Source[Int, NotUsed] = Source(1 to 100)
 
-  val factorials = source.scan(BigInt(1))((acc, next) => acc * next)
+  def run()(implicit system: ActorSystem, materializer: ActorMaterializer): Unit = {
 
-  val result: Future[IOResult] = factorials.map(_.toString).runWith(lineSink("factorial2.txt"));
-  /* factorials
-    .map(num => ByteString(s"$num\n"))
-    .runWith(FileIO.toPath(Paths.get("factorials.txt"))) */
+    implicit val ec = system.dispatcher;
 
-  result.onComplete(_ => system.terminate());
+    def lineSink(filename: String): Sink[String, Future[IOResult]] =
+      Flow[String]
+        .map(s => ByteString(s + "\n")).toMat(FileIO.toPath(Paths.get(filename)))(Keep.right);
+
+    val source: Source[Int, NotUsed] = Source(1 to 100)
+
+    val factorials = source.scan(BigInt(1))((acc, next) => acc * next)
+
+    val result: Future[IOResult] = factorials.map(_.toString).runWith(lineSink("factorial2.txt"));
+    /* factorials
+      .map(num => ByteString(s"$num\n"))
+      .runWith(FileIO.toPath(Paths.get("factorials.txt"))) */
+
+    result.onComplete(_ => system.terminate());
+  }
+
+
 
 }
