@@ -9,9 +9,17 @@ lazy val root = (project in file(".")).
     )),
     name := "HelloStream",
 
+    resolvers += "Akka maven latest" at "https://dl.bintray.com/akka/maven/",
+
     // dependecies
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-stream" % "2.5.6"
+
+    ),
+
+    // alpakka
+    libraryDependencies ++= Seq(
+      "com.lightbend.akka" %% "akka-stream-alpakka-ftp" % "0.14"
     ),
 
     // test dependecies
