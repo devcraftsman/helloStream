@@ -9,7 +9,7 @@ lazy val root = (project in file(".")).
     )),
     name := "HelloStream",
 
-    resolvers += "Akka maven latest" at "https://dl.bintray.com/akka/maven/",
+    resolvers += Resolver.bintrayRepo("akka", "maven"),
 
     // dependecies
     libraryDependencies ++= Seq(
