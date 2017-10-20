@@ -1,13 +1,15 @@
 import Dependencies._
 
-lazy val root = (project in file(".")).
-  settings(
+lazy val root = (project in file("."))
+  .configs(IntegrationTest)
+  .settings(
     inThisBuild(List(
       organization := "com.example",
       scalaVersion := "2.12.3",
-      version      := "0.1.0-SNAPSHOT"
+      version := "0.1.0-SNAPSHOT"
     )),
     name := "HelloStream",
+    Defaults.itSettings,
 
     resolvers += Resolver.bintrayRepo("akka", "maven"),
 
@@ -24,8 +26,8 @@ lazy val root = (project in file(".")).
 
     // test dependecies
     libraryDependencies ++= Seq(
-      "com.typesafe.akka" %% "akka-testkit" % "2.5.6" % Test,
-      "com.typesafe.akka" %%"akka-stream-testkit" % "2.5.6" % Test,
-      scalaTest % Test
+      "com.typesafe.akka" %% "akka-testkit" % "2.5.6" % "it,test",
+      "com.typesafe.akka" %% "akka-stream-testkit" % "2.5.6" % "it,test",
+      scalaTest % "it,test"
     )
   )

@@ -1,24 +1,46 @@
 package example
 
-import org.scalatest._
-import akka.stream._
-import akka.stream.scaladsl._
-import akka.{ NotUsed, Done }
-import akka.actor.ActorSystem
-import akka.testkit.{ ImplicitSender, TestActors, TestKit,TestProbe }
-import akka.util.ByteString
-import akka.{pattern}
-import scala.concurrent._
-import scala.concurrent.duration._
-import akka.stream.testkit.scaladsl.{ TestSink, TestSource }
+import java.net.InetAddress
 
-class HelloSpec extends FlatSpec with Matchers {
+import akka.NotUsed
+import akka.event.Logging
+import akka.stream._
+import akka.stream.alpakka.ftp.FtpCredentials.NonAnonFtpCredentials
+import akka.stream.alpakka.ftp.scaladsl.Sftp
+import akka.stream.alpakka.ftp.{FtpFile, SftpSettings}
+import akka.stream.scaladsl._
+import akka.stream.testkit.scaladsl.TestSink
+import org.scalatest._
+
+
+class SftpSpec extends FlatSpec with Matchers {
   implicit val system = akka.actor.ActorSystem("system");
   implicit val materializer = ActorMaterializer();
 
-  "The Stream test" should "work" in {
-    import system.dispatcher
+  val settings = SftpSettings(
+    InetAddress.getByName("localhost"),
+    2222,
+    credentials = NonAnonFtpCredentials("sftpuser", "sftpuser"),
+    strictHostKeyChecking = false,
+    //knownHosts = Some("./secure_hosts")
+  )
+
+  "The Stream" should "read al present files in ftp" in {
+    val basepath: String = "/public/";
+    val sourceUnderTest: Source[FtpFile, NotUsed] = Sftp.ls(basepath, settings);
+
+    val result = sourceUnderTest
+      .log("Start reading...")
+      .runWith(TestSink.probe[FtpFile])
+      .requestNext()
+
+    assert(result.isFile);
+    assert(result.name equals ("data.txt"))
+  }
+
+  /*"The Stream test" should "work" in {
     import akka.pattern.pipe
+    import system.dispatcher
 
     val sourceUnderTest = Source(1 to 4).grouped(2);
     val probe = TestProbe();
@@ -27,7 +49,7 @@ class HelloSpec extends FlatSpec with Matchers {
 
   }
 
-  "The Stream test" should "Work with actorRedf" in {
+  "The Stream test" should "Work with actorRef" in {
     case object Tick
     val sourceUnderTest = Source.tick(0.seconds, 200.millis, Tick)
 
@@ -39,19 +61,9 @@ class HelloSpec extends FlatSpec with Matchers {
     probe.expectMsg(3.seconds, Tick)
     cancellable.cancel()
     probe.expectMsg(3.seconds, "completed")
-  }
+  }*/
 
-  "The Stream testkit" should "work with SinkProbe" in {
-    val sourceUnderTest = Source(1 to 4).filter(_ % 2 == 0).map(_ * 2)
-
-    sourceUnderTest
-    .runWith(TestSink.probe[Int])
-    .request(2)
-    .expectNext(4, 8)
-    .expectComplete()
-  }
-
-  "The Stream testkit" should "work with both source and sink" in {
+  /*"The Stream testkit" should "work with both source and sink" in {
     implicit val ec = system.dispatcher;
     val flowUnderTest = Flow[Int].mapAsyncUnordered(2) { sleep =>
       pattern.after(10.millis * sleep, using = system.scheduler)(Future.successful(sleep))
@@ -71,5 +83,5 @@ class HelloSpec extends FlatSpec with Matchers {
     pub.sendError(new Exception("Power surge in the linear subroutine C-47!"))
     val ex = sub.expectError()
     assert(ex.getMessage.contains("C-47"))
-  }
+  } */
 }
