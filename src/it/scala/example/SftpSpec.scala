@@ -3,7 +3,6 @@ package example
 import java.net.InetAddress
 
 import akka.NotUsed
-import akka.event.Logging
 import akka.stream._
 import akka.stream.alpakka.ftp.FtpCredentials.NonAnonFtpCredentials
 import akka.stream.alpakka.ftp.scaladsl.Sftp
@@ -21,8 +20,8 @@ class SftpSpec extends FlatSpec with Matchers {
     InetAddress.getByName("localhost"),
     2222,
     credentials = NonAnonFtpCredentials("sftpuser", "sftpuser"),
-    strictHostKeyChecking = false,
-    //knownHosts = Some("./secure_hosts")
+    strictHostKeyChecking = true,
+    knownHosts = Some("/home/alessandro/.ssh/known_hosts")
   )
 
   "The Stream" should "read al present files in ftp" in {
