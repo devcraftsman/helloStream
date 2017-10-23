@@ -1,20 +1,28 @@
 package example
 
 import java.net.InetAddress
+import java.nio.charset.Charset
+import java.util.concurrent.TimeUnit
 
 import akka.NotUsed
+import akka.event.{Logging, LoggingAdapter}
 import akka.stream._
 import akka.stream.alpakka.ftp.FtpCredentials.NonAnonFtpCredentials
 import akka.stream.alpakka.ftp.scaladsl.Sftp
 import akka.stream.alpakka.ftp.{FtpFile, SftpSettings}
 import akka.stream.scaladsl._
 import akka.stream.testkit.scaladsl.TestSink
+import akka.testkit.TestProbe
 import org.scalatest._
+import org.scalatest.time.Seconds
+
+import scala.concurrent.duration.{Duration, FiniteDuration}
 
 
 class SftpSpec extends FlatSpec with Matchers {
   implicit val system = akka.actor.ActorSystem("system");
   implicit val materializer = ActorMaterializer();
+  val log: LoggingAdapter = Logging.getLogger(system, this)
 
   val settings = SftpSettings(
     InetAddress.getByName("localhost"),
@@ -24,8 +32,10 @@ class SftpSpec extends FlatSpec with Matchers {
     knownHosts = Some("/home/alessandro/.ssh/known_hosts")
   )
 
+  val basepath: String = "/public/";
+
   "The Stream" should "read al present files in ftp" in {
-    val basepath: String = "/public/";
+
     val sourceUnderTest: Source[FtpFile, NotUsed] = Sftp.ls(basepath, settings);
 
     val result = sourceUnderTest
@@ -35,6 +45,20 @@ class SftpSpec extends FlatSpec with Matchers {
 
     assert(result.isFile);
     assert(result.name equals ("data.txt"))
+  }
+
+
+  "The stream" should "list for file and download only the one that matches" in {
+    val sourceUnderTest: Source[FtpFile, NotUsed] = Sftp.ls(basepath, settings);
+    val result = sourceUnderTest
+      .log("Start reading...")
+      .filter(f => f.name.equals("data.txt"))
+      .flatMapConcat(f => Sftp.fromPath(f.path, settings))
+      .runWith(TestSink.probe)
+      .requestNext()
+
+    assert(result.nonEmpty);
+    log.info("File Found. Content is: " + result.decodeString(Charset.defaultCharset()));
   }
 
   /*"The Stream test" should "work" in {
